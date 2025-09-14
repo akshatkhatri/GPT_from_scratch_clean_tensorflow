@@ -1,0 +1,29 @@
+# Override GitHub language detection
+*.py linguist-detectable=true
+*.html linguist-detectable=false
+*.js linguist-detectable=false
+*.css linguist-detectable=false
+
+# Mark Python as the primary language
+*.py linguist-language=Python
+
+# Exclude generated or vendor files from language stats
+experiments/ linguist-vendored
+tfrecords/ linguist-vendored
+__pycache__/ linguist-vendored
+*.pyc linguist-generated
+logs/ linguist-vendored
+checkpoints/ linguist-vendored
+visualizations/ linguist-vendored
+
+# Mark documentation files
+*.md linguist-documentation
+*.txt linguist-documentation
+
+# Ensure Python files are counted
+training/*.py linguist-detectable=true
+models/*.py linguist-detectable=true
+data/*.py linguist-detectable=true
+deployment/*.py linguist-detectable=true
+analysis/*.py linguist-detectable=true
+testing/*.py linguist-detectable=true
