@@ -1,6 +1,9 @@
 # Custom GPT from Scratch - Jane Austen Language Model
-
 A complete implementation of a GPT (Generative Pre-trained Transformer) model built from scratch using TensorFlow/Keras, specifically trained on Jane Austen's literary works to generate authentic 19th-century prose.
+
+GPT "Generative Pre-trained Transformer" is the first version of the GPT series of models, revolutionized natural language processing with its autoregressive language modeling capabilities built on the Transformer architecture.
+Important Note: The goal of this project is to provide a deep understanding of the GPT architecture and its inner workings. So, it's mainly for educational purposes. You can fully understand the structure and working mechanism of this model here, and use the components I have implemented in your projects.
+
 
 ## 🎯 Project Overview
 
