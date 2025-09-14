@@ -1,0 +1,33 @@
+# GPT Model Configuration - OPTIMIZED FOR JANE AUSTEN
+# Based on analysis of 4.3MB Jane Austen dataset
+# Character-level tokenization chosen for optimal performance
+
+# Tokenizer configuration
+TOKENIZER_TYPE=char
+# Vocabulary size auto-determined from characters (~38 unique chars)
+VOCAB_SIZE=2000
+
+# Model architecture (optimized for 4MB literary text)
+D_MODEL= 128
+CONTEXT_LEN=256
+ATTENTION_HEADS=8
+DECODER_BLOCKS=4
+DROPOUT_RATE=0.1
+
+# Training parameters (optimized for character-level)
+LEARNING_RATE=0.0001
+EPOCHS=100
+STEPS_PER_EPOCH=500
+WARMUP_RATIO=0.1
+PEAK_LEARNING_RATE=3e-4
+MIN_LEARNING_RATE=1e-6
+
+# Training settings
+BATCH_SIZE=8
+RECORDS_PER_FILE=100
+
+# Expected results:
+# - Training time: ~45-60 minutes
+# - Memory usage: ~2-3GB
+# - Quality: High coherence in Austen's style
+# - Vocab coverage: 100% (no unknown tokens)

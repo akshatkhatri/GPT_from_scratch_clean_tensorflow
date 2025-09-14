@@ -1,0 +1,5 @@
+context_length: 256
+vocab_size: 38
+num_examples: 16981
+num_files: 170
+records_per_file: 100

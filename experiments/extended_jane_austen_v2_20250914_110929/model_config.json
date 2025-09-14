@@ -1,0 +1,28 @@
+{
+  "architecture": {
+    "d_model": 128,
+    "vocab_size": 38,
+    "context_length": 256,
+    "attention_heads": 8,
+    "decoder_blocks": 4,
+    "dropout_rate": 0.1
+  },
+  "total_parameters": 801062,
+  "training_config": {
+    "TOKENIZER_TYPE": "char",
+    "VOCAB_SIZE": 2000,
+    "D_MODEL": 128,
+    "CONTEXT_LEN": 256,
+    "ATTENTION_HEADS": 8,
+    "DECODER_BLOCKS": 4,
+    "DROPOUT_RATE": 0.1,
+    "LEARNING_RATE": 0.0001,
+    "EPOCHS": 100,
+    "STEPS_PER_EPOCH": 500,
+    "WARMUP_RATIO": 0.1,
+    "PEAK_LEARNING_RATE": 0.0003,
+    "MIN_LEARNING_RATE": 1e-06,
+    "BATCH_SIZE": 8,
+    "RECORDS_PER_FILE": 100
+  }
+}

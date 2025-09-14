@@ -1,0 +1,21 @@
+# GPT Model Configuration for Small Training Test
+# Format: PARAMETER_NAME=value
+
+# Tokenizer configuration
+TOKENIZER_TYPE=char
+VOCAB_SIZE=2000
+
+# Model architecture parameters (optimized for small training)
+D_MODEL=64
+CONTEXT_LEN=128
+ATTENTION_HEADS=4
+DECODER_BLOCKS=2
+DROPOUT_RATE=0.1
+
+# Training parameters (optimized for quick testing)
+LEARNING_RATE=0.001
+EPOCHS=5
+STEPS_PER_EPOCH=50
+WARMUP_RATIO=0.1
+PEAK_LEARNING_RATE=0.01
+MIN_LEARNING_RATE=1e-5

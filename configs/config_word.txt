@@ -1,0 +1,24 @@
+# GPT Model Configuration for Word-level Tokenization
+# Format: PARAMETER_NAME=value
+
+# Tokenizer configuration
+# Options: char, word, sentencepiece
+TOKENIZER_TYPE=word
+# Vocabulary size (only used for word and sentencepiece tokenizers)
+# For char tokenizer, vocab size is determined automatically from text
+VOCAB_SIZE=5000
+
+# Model architecture parameters
+D_MODEL=256
+CONTEXT_LEN=512
+ATTENTION_HEADS=8
+DECODER_BLOCKS=6
+DROPOUT_RATE=0.1
+
+# Training parameters
+LEARNING_RATE=0.0001
+EPOCHS=50
+STEPS_PER_EPOCH=500
+WARMUP_RATIO=0.1
+PEAK_LEARNING_RATE=5e-4
+MIN_LEARNING_RATE=1e-6

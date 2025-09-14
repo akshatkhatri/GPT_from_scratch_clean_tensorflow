@@ -1,0 +1,17 @@
+Once upon a time, there was a young programmer named Alice who loved to code. She spent her days writing beautiful algorithms and solving complex problems. Alice was passionate about machine learning and dreamed of creating an AI that could understand human language.
+
+One day, Alice decided to build a GPT model from scratch. She gathered her favorite programming books, opened her laptop, and began coding. The first challenge was preprocessing the text data and creating a tokenizer that could break down sentences into meaningful pieces.
+
+Alice worked tirelessly, debugging her code and fine-tuning her model. She learned about attention mechanisms, transformer architectures, and the magic of self-attention. Each line of code brought her closer to her goal.
+
+After many days of coding, Alice finally had a working model. She trained it on stories, poems, and technical documentation. The model began to understand patterns in language and could generate coherent text.
+
+Alice was thrilled with her creation. She realized that building AI from scratch taught her more than any textbook ever could. The journey of creating something from nothing was both challenging and rewarding.
+
+As Alice continued to improve her model, she shared her knowledge with other programmers. Together, they pushed the boundaries of what was possible with artificial intelligence. Alice's dream of creating an AI that could understand human language was becoming a reality.
+
+The end of this story is really just the beginning. Alice's model would go on to help people write code, create stories, and solve problems they never thought possible. And Alice herself became a mentor to others who wanted to follow in her footsteps.
+
+Programming is like magic, and Alice had learned to cast spells with code. Her GPT model was proof that with dedication, curiosity, and persistence, anyone can create something amazing.
+
+This small story contains various patterns that will help test our GPT model. It has narrative structure, repetitive themes, and consistent character development that should allow the model to learn and generate similar content.

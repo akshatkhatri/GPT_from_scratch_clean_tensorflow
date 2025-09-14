@@ -1,0 +1,17 @@
+[
+  {
+    "prompt": "Alice",
+    "generated": "Alice was a programmer who loved to code.",
+    "length": 41
+  },
+  {
+    "prompt": "The cat",
+    "generated": "The cat beginning of a new era in AI.",
+    "length": 37
+  },
+  {
+    "prompt": "Once upon",
+    "generated": "Once upon was elegant and efficient.",
+    "length": 36
+  }
+]
