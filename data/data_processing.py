@@ -6,17 +6,6 @@ from tqdm import tqdm
 
 
 def create_tf_example(input_ids: List[int], target_ids: List[int], attention_mask: List[int]) -> bytes:
-    """
-    Create a serialized TFRecord example from input-target pair.
-    
-    Args:
-        input_ids: Token sequence for model input
-        target_ids: Token sequence for model targets (shifted by 1)
-        attention_mask: Mask for valid tokens (1) vs padding (0)
-        
-    Returns:
-        Serialized TFRecord example
-    """
     feature = {
         'input_ids': tf.train.Feature(int64_list=tf.train.Int64List(value=input_ids)),
         'target_ids': tf.train.Feature(int64_list=tf.train.Int64List(value=target_ids)),
@@ -30,73 +19,43 @@ def create_tf_example(input_ids: List[int], target_ids: List[int], attention_mas
 def convert_text_to_tfrecord(
     text_file_path: str,
     token_to_id_dict: Dict[str, int],
-    tokenize_func,  # Function to tokenize text
+    tokenize_func,
     output_dir: str,
     context_length: int = 512,
     records_per_file: int = 1000,
     pad_value: int = 0
 ) -> str:
-    """
-    Convert text file to TFRecord files for GPT training.
-    
-    Process:
-    1. Read and tokenize entire text file using provided tokenize function
-    2. Create sliding windows of context_length + 1 tokens
-    3. Split each window into input/target pairs (shifted by 1)
-    4. Save as TFRecord files with specified number of records per file
-    
-    Args:
-        text_file_path: Path to your text file (e.g., WikiText-103)
-        token_to_id_dict: Token-to-ID mapping dictionary
-        tokenize_func: Function that takes text and returns list of token IDs
-        output_dir: Directory to save TFRecord files
-        context_length: Sequence length for training
-        records_per_file: Number of examples per TFRecord file
-        pad_value: Token ID used for unknown characters
-        
-    Returns:
-        Path to output directory containing TFRecord files
-    """
-    # Setup
     os.makedirs(output_dir, exist_ok=True)
     print(f"Reading text file: {text_file_path}")
     
-    # Step 1: Load and tokenize text
     with open(text_file_path, 'r', encoding='utf-8') as f:
         text = f.read()
     
     print(f"Text length: {len(text):,} characters")
     
-    # Convert text to token IDs using the provided tokenize function
     print("Tokenizing text...")
     token_ids = tokenize_func(text)
     print(f"Token length: {len(token_ids):,} tokens")
     
-    # Step 2: Calculate output size
     num_examples = (len(token_ids) - context_length) // context_length
     print(f"Will create {num_examples:,} training examples")
     
-    # Step 3: Process sliding windows and write TFRecord files
     file_count = 0
     examples_in_current_file = 0
     writer = None
     
     print("Creating TFRecord files...")
     
-    # Slide window across token sequence
     for i in tqdm(range(0, len(token_ids) - context_length, context_length)):
         
-        # Extract window of tokens
         window = token_ids[i:i + context_length + 1]
         if len(window) < context_length + 1:
             break
             
-        # Create input-target pair (GPT training format)
-        input_ids = window[:-1]    # First 512 tokens: [t1, t2, ..., t512]
-        target_ids = window[1:]    # Shifted by 1: [t2, t3, ..., t513]
-        attention_mask = [1] * context_length  # All valid tokens (no padding)
+        input_ids = window[:-1]
+        target_ids = window[1:]
+        attention_mask = [1] * context_length
         
-        # Start new TFRecord file if needed
         if writer is None or examples_in_current_file >= records_per_file:
             if writer is not None:
                 writer.close()
@@ -146,29 +105,8 @@ def create_tf_data_pipeline(
     shuffle_buffer: int = 1000,
     prefetch_buffer: int = tf.data.AUTOTUNE
 ) -> tf.data.Dataset:
-    """
-    Create tf.data pipeline from TFRecord files for training.
-    
-    Process:
-    1. Find all TFRecord files in directory
-    2. Create dataset that reads and parses TFRecord examples
-    3. Apply shuffling, batching, and prefetching for efficient training
-    
-    Args:
-        tfrecord_dir: Directory containing TFRecord files
-        context_length: Expected sequence length in records
-        batch_size: Number of examples per training batch
-        shuffle_buffer: Size of shuffle buffer (larger = more random)
-        prefetch_buffer: Number of batches to prefetch (AUTOTUNE = automatic)
-        
-    Returns:
-        tf.data.Dataset ready for model.fit()
-    """
-    # Step 1: Find TFRecord files
     tfrecord_files = tf.io.gfile.glob(os.path.join(tfrecord_dir, "*.tfrecord"))
     print(f"Found {len(tfrecord_files)} TFRecord files")
-    
-    # Step 2: Define how to parse each TFRecord example
     feature_description = {
         'input_ids': tf.io.FixedLenFeature([context_length], tf.int64),
         'target_ids': tf.io.FixedLenFeature([context_length], tf.int64),
@@ -191,7 +129,6 @@ def create_tf_data_pipeline(
         
         return model_inputs, model_targets
     
-    # Step 3: Create and configure dataset pipeline
     dataset = tf.data.TFRecordDataset(tfrecord_files)
     dataset = dataset.map(parse_tfrecord_example, num_parallel_calls=tf.data.AUTOTUNE)
     dataset = dataset.shuffle(shuffle_buffer)
@@ -204,22 +141,16 @@ def create_train_val_datasets(tfrecord_dir: str,
                              context_length: int,
                              batch_size: int = 32,
                              val_split: float = 0.1):
-    """
-    Create training and validation datasets from TFRecord files
-    """
-    # Find all TFRecord files
     tfrecord_files = tf.io.gfile.glob(os.path.join(tfrecord_dir, "*.tfrecord"))
-    tfrecord_files = sorted(tfrecord_files)  # Ensure consistent ordering
+    tfrecord_files = sorted(tfrecord_files)
     print(f"Found {len(tfrecord_files)} TFRecord files")
     
-    # Split files for train/val
     num_val_files = max(1, int(len(tfrecord_files) * val_split))
     val_files = tfrecord_files[:num_val_files]
     train_files = tfrecord_files[num_val_files:]
     
     print(f"Using {len(train_files)} files for training, {len(val_files)} for validation")
     
-    # Feature description
     feature_description = {
         'input_ids': tf.io.FixedLenFeature([context_length], tf.int64),
         'target_ids': tf.io.FixedLenFeature([context_length], tf.int64),
@@ -233,13 +164,11 @@ def create_train_val_datasets(tfrecord_dir: str,
         target_ids = tf.cast(parsed_features['target_ids'], tf.int32)
         attention_mask = tf.cast(parsed_features['attention_mask'], tf.int32)
         
-        # Return in format your model expects: ([input_ids, attention_mask], targets)
         return (input_ids, attention_mask), target_ids
     
-    # Create training dataset
     train_dataset = tf.data.TFRecordDataset(train_files)
     train_dataset = train_dataset.map(parse_function, num_parallel_calls=tf.data.AUTOTUNE)
-    train_dataset = train_dataset.shuffle(5000)  # Shuffle buffer
+    train_dataset = train_dataset.shuffle(5000)
     train_dataset = train_dataset.repeat()  # Repeat to prevent running out of data
     train_dataset = train_dataset.batch(batch_size)
     train_dataset = train_dataset.prefetch(tf.data.AUTOTUNE)
@@ -251,13 +180,10 @@ def create_train_val_datasets(tfrecord_dir: str,
     val_dataset = val_dataset.batch(batch_size)
     val_dataset = val_dataset.prefetch(tf.data.AUTOTUNE)
     
-    # Count examples in training files for steps_per_epoch calculation
-    # First try to use metadata file for faster counting
     metadata_path = os.path.join(tfrecord_dir, 'metadata.txt')
     train_example_count = 0
     
     if os.path.exists(metadata_path):
-        # Read from metadata file (faster)
         metadata = {}
         with open(metadata_path, 'r') as f:
             for line in f:
@@ -269,11 +195,9 @@ def create_train_val_datasets(tfrecord_dir: str,
                         metadata[key.strip()] = value.strip()
         
         total_examples = metadata.get('num_examples', 0)
-        # Estimate training examples based on file split
         train_example_count = int(total_examples * len(train_files) / len(tfrecord_files))
         print(f"Using metadata for counting: {train_example_count} estimated training examples")
     else:
-        # Fallback to counting (slower but accurate)
         print("Metadata not found, counting examples...")
         for tfrecord_file in train_files:
             for _ in tf.data.TFRecordDataset(tfrecord_file):
@@ -282,7 +206,6 @@ def create_train_val_datasets(tfrecord_dir: str,
     
     steps_per_epoch = max(1, train_example_count // batch_size)
     
-    # Warn if steps per epoch is very low
     if steps_per_epoch < 5:
         print(f"⚠️  WARNING: Very few steps per epoch ({steps_per_epoch}). Consider:")
         print(f"   - Reducing batch_size (current: {batch_size})")
@@ -300,7 +223,7 @@ import tensorflow as tf
 def prepare_tfrecords(
     text_file_path: str,
     token_to_id_dict: dict,
-    tokenize_func,  # Function to tokenize text
+    tokenize_func,
     context_length: int = 128,
     records_per_file: int = 1000,
     output_base_dir: str = './tfrecords',
@@ -308,32 +231,11 @@ def prepare_tfrecords(
     batch_size: int = 16,
     val_split: float = 0.1
 ):
-    """
-    Create TFRecords from text and return train/val datasets.
-    Stores TFRecords in a versioned folder to avoid overwriting previous ones.
-
-    Args:
-        text_file_path: Path to input text file.
-        token_to_id_dict: Token-to-id dictionary.
-        tokenize_func: Function that takes text and returns list of token IDs.
-        context_length: Sequence length for training.
-        records_per_file: Number of examples per TFRecord file.
-        output_base_dir: Base folder to store TFRecords.
-        version_name: Optional unique folder name. If None, uses context_length.
-        batch_size: Batch size for dataset.
-        val_split: Fraction of data to use as validation.
-
-    Returns:
-        train_dataset, val_dataset, steps_per_epoch
-    """
-
-    # Determine output folder
     if version_name is None:
         version_name = f"context_{context_length}_bs{batch_size}"
     output_dir = os.path.join(output_base_dir, version_name)
     os.makedirs(output_dir, exist_ok=True)
 
-    # Convert text to TFRecords
     tfrecord_dir = convert_text_to_tfrecord(
         text_file_path=text_file_path,
         token_to_id_dict=token_to_id_dict,
@@ -343,7 +245,6 @@ def prepare_tfrecords(
         records_per_file=records_per_file
     )
 
-    # Create train/val datasets
     train_dataset, val_dataset, steps_per_epoch = create_train_val_datasets(
         tfrecord_dir=tfrecord_dir,
         context_length=context_length,

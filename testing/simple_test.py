@@ -34,18 +34,15 @@ def simple_test():
     
     print(f"✅ Using minimal config: {config}")
     
-    # Create tokenizer
     print("\n1. Creating tokenizer...")
     token_to_id_dict, tokenize_func, _ = create_tokenizer(config, [text_file])
     vocab_size = len(token_to_id_dict)
     print(f"✅ Vocab size: {vocab_size}")
     
-    # Test sample
     with open(text_file, 'r') as f:
         text = f.read()
     print(f"✅ Text length: {len(text)} characters")
     
-    # Prepare tiny dataset
     print("\n2. Preparing data...")
     train_ds, val_ds, steps = prepare_tfrecords(
         text_file_path=text_file,

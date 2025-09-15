@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""
-Gradio deployment interface for trained GPT model with improved attention visualizations
-"""
 
 import gradio as gr
 import tensorflow as tf
@@ -21,7 +18,6 @@ from PIL import Image
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import our models
 from models.layers import *
 from models.utils import *
 
@@ -31,20 +27,15 @@ class GPTDeployer:
         self.load_model_and_tokenizer()
         
     def load_model_and_tokenizer(self):
-        """Load the trained model and tokenizer"""
-        
-        # Load tokenizer
         with open(f"{self.experiment_dir}/tokenizer.json", 'r') as f:
             self.tokenizer_data = json.load(f)
         
         self.token_to_id = self.tokenizer_data['token_to_id']
         self.id_to_token = self.tokenizer_data['id_to_token']
         
-        # Load model config
         with open(f"{self.experiment_dir}/model_config.json", 'r') as f:
             config_data = json.load(f)
         
-        # Extract model architecture config
         if 'architecture' in config_data:
             self.model_config = config_data['architecture']
         else:
@@ -55,6 +46,7 @@ class GPTDeployer:
         self.model_config = {
             'context_length': self.model_config.get('context_length', self.model_config.get('CONTEXT_LEN', 256)),
             'd_model': self.model_config.get('d_model', self.model_config.get('D_MODEL', 128)),
+            'vocab_size': self.model_config.get('vocab_size', self.model_config.get('VOCAB_SIZE', len(self.token_to_id))),
             'attention_heads': self.model_config.get('attention_heads', self.model_config.get('ATTENTION_HEADS', 8)),
             'decoder_blocks': self.model_config.get('decoder_blocks', self.model_config.get('DECODER_BLOCKS', 4)),
             'dropout_rate': self.model_config.get('dropout_rate', self.model_config.get('DROPOUT_RATE', 0.1))
@@ -63,35 +55,32 @@ class GPTDeployer:
         # Build model using GPT class
         self.model = GPT(
             d_model=self.model_config['d_model'],
-            vocab_size=len(self.token_to_id),
+            vocab_size=self.model_config['vocab_size'],
             context_length=self.model_config['context_length'],
             attention_heads=self.model_config['attention_heads'],
             decoder_blocks=self.model_config['decoder_blocks'],
             dropout_rate=self.model_config['dropout_rate']
         )
         
-        # Load weights
+        # Build the model by calling it with dummy data
+        dummy_input = tf.ones((1, 10), dtype=tf.int32)
+        dummy_mask = tf.ones((1, 10), dtype=tf.int32)
+        _ = self.model([dummy_input, dummy_mask])
+        
         weights_path = f"{self.experiment_dir}/checkpoints/best_model.weights.h5"
         if os.path.exists(weights_path):
-            print(f"🚀 Loading model from: {self.experiment_dir}")
-            
-            # Build model with a sample input to initialize weights
-            sample_input = tf.ones((1, 10), dtype=tf.int32)
-            sample_attention_mask = tf.ones((1, 10), dtype=tf.int32)
-            _ = self.model([sample_input, sample_attention_mask])
-            
             self.model.load_weights(weights_path)
-            print(f"✅ Model loaded from {weights_path}")
+            print(f"Loaded weights from: {weights_path}")
         else:
-            print(f"❌ Weights file not found: {weights_path}")
-            
-        # Load training history for visualizations
-        try:
+            raise FileNotFoundError(f"Model weights not found at: {weights_path}")
+        
+        print(f"Model loaded successfully!")
+        print(f"Architecture: {self.model_config}")
+        
+        self.training_history = None
+        if os.path.exists(f"{self.experiment_dir}/training_history.json"):
             with open(f"{self.experiment_dir}/training_history.json", 'r') as f:
                 self.training_history = json.load(f)
-        except:
-            self.training_history = None
-            print("⚠️ Training history not found")
 
     def tokenize_text(self, text):
         """Tokenize input text"""
@@ -346,28 +335,27 @@ class GPTDeployer:
             attention_matrix[i] = np.maximum(attention_matrix[i], 0)
             attention_matrix[i] = attention_matrix[i] / (attention_matrix[i].sum() + 1e-8)
         
-        # Create visualization with dark theme
-        fig, ax = plt.subplots(figsize=(12, 10), facecolor='#1e293b')
-        ax.set_facecolor('#1e293b')
+        # Create visualization with default theme
+        fig, ax = plt.subplots(figsize=(12, 10))
         
-        # Use a better colormap that works well with dark theme
-        im = ax.imshow(attention_matrix, cmap='plasma', aspect='auto', vmin=0, vmax=1)
+        # Use a standard colormap
+        im = ax.imshow(attention_matrix, cmap='viridis', aspect='auto', vmin=0, vmax=1)
         
         # Add grid for better readability
         ax.set_xticks(np.arange(-0.5, n_tokens, 1), minor=True)
         ax.set_yticks(np.arange(-0.5, n_tokens, 1), minor=True)
-        ax.grid(which='minor', color='#475569', linestyle='-', linewidth=1, alpha=0.4)
+        ax.grid(which='minor', color='gray', linestyle='-', linewidth=1, alpha=0.4)
         
         # Set ticks and labels
         ax.set_xticks(range(n_tokens))
         ax.set_yticks(range(n_tokens))
         
-        # Better labels with token numbers (dark theme colors)
+        # Better labels with token numbers
         xlabels = [f'{i}: "{label}"' for i, label in enumerate(token_labels)]
         ylabels = [f'{i}: "{label}"' for i, label in enumerate(token_labels)]
         
-        ax.set_xticklabels(xlabels, rotation=45, ha='right', fontsize=11, color='#e2e8f0')
-        ax.set_yticklabels(ylabels, fontsize=11, color='#e2e8f0')
+        ax.set_xticklabels(xlabels, rotation=45, ha='right', fontsize=11)
+        ax.set_yticklabels(ylabels, fontsize=11)
         
         # Add value annotations for significant attention
         for i in range(n_tokens):
@@ -375,28 +363,21 @@ class GPTDeployer:
                 value = attention_matrix[i, j]
                 if value > 0.05:  # Only show significant values
                     # Use contrasting colors based on attention value
-                    color = '#1e293b' if value > 0.4 else '#e2e8f0'
+                    color = 'white' if value > 0.4 else 'black'
                     ax.text(j, i, f'{value:.2f}', 
                            ha='center', va='center', fontsize=10, 
                            fontweight='bold', color=color)
         
-        # Dark theme title and labels
+        # Default theme title and labels
         ax.set_title(f'Attention Matrix: "{text[:25]}..."\n(Each row shows where that token pays attention)', 
-                     fontsize=14, fontweight='bold', pad=20, color='#e2e8f0')
-        ax.set_xlabel('Key Tokens (What we\'re looking at)', fontsize=12, fontweight='bold', color='#e2e8f0')
-        ax.set_ylabel('Query Tokens (Who is looking)', fontsize=12, fontweight='bold', color='#e2e8f0')
+                     fontsize=14, fontweight='bold', pad=20)
+        ax.set_xlabel('Key Tokens (What we\'re looking at)', fontsize=12, fontweight='bold')
+        ax.set_ylabel('Query Tokens (Who is looking)', fontsize=12, fontweight='bold')
         
-        # Set tick colors
-        ax.tick_params(colors='#e2e8f0')
-        
-        # Enhanced colorbar with dark theme
+        # Enhanced colorbar
         cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
         cbar.set_label('Attention Weight\n(0=No attention, 1=Full attention)', 
-                      fontsize=11, color='#e2e8f0')
-        cbar.ax.tick_params(colors='#e2e8f0')
-        # Set colorbar outline color
-        for spine in cbar.ax.spines.values():
-            spine.set_color('#475569')
+                      fontsize=11)
         
         # Add helpful explanation with dark theme styling
         explanation = ("💡 How to read this: Each cell (i,j) shows how much token i pays attention to token j.\n" +
@@ -421,22 +402,18 @@ class GPTDeployer:
         return image
     
     def show_training_curves(self):
-        """Display training curves with dark theme support"""
+        """Display training curves with default theme"""
         
         if not self.training_history:
-            # Create a placeholder with dark theme support
-            fig, ax = plt.subplots(figsize=(10, 6), facecolor='#1e293b')
-            ax.set_facecolor('#1e293b')
+            # Create a placeholder
+            fig, ax = plt.subplots(figsize=(10, 6))
             ax.text(0.5, 0.5, 'Training history not available\nBut the model trained successfully!', 
-                   ha='center', va='center', fontsize=16, transform=ax.transAxes, 
-                   color='#e2e8f0')
-            ax.set_title('Training Results', fontsize=14, fontweight='bold', color='#e2e8f0')
-            ax.tick_params(colors='#e2e8f0')
+                   ha='center', va='center', fontsize=16, transform=ax.transAxes)
+            ax.set_title('Training Results', fontsize=14, fontweight='bold')
             plt.tight_layout()
             
             buf = io.BytesIO()
-            plt.savefig(buf, format='png', dpi=150, bbox_inches='tight', 
-                       facecolor='#1e293b', edgecolor='none')
+            plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
             buf.seek(0)
             plt.close()
             
@@ -445,30 +422,22 @@ class GPTDeployer:
         
         epochs = list(range(1, len(self.training_history['loss']) + 1))
         
-        # Create figure with dark theme colors
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8), 
-                                                     facecolor='#1e293b')
-        
-        # Set dark theme for all subplots
-        for ax in [ax1, ax2, ax3, ax4]:
-            ax.set_facecolor('#1e293b')
-            ax.tick_params(colors='#e2e8f0')
-            ax.grid(True, alpha=0.2, color='#475569')
-            for spine in ax.spines.values():
-                spine.set_color('#475569')
+        # Create figure with default theme
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
         
         # Loss curves
         ax1.plot(epochs, self.training_history['loss'], '#3b82f6', label='Training', linewidth=2)
         ax1.plot(epochs, self.training_history['val_loss'], '#ef4444', label='Validation', linewidth=2)
-        ax1.set_title('Loss Over Time', color='#e2e8f0', fontweight='bold')
-        ax1.set_xlabel('Epoch', color='#e2e8f0')
-        ax1.set_ylabel('Loss', color='#e2e8f0')
-        ax1.legend(facecolor='#334155', edgecolor='#475569', labelcolor='#e2e8f0')
+        ax1.set_title('Loss Over Time', fontweight='bold')
+        ax1.set_xlabel('Epoch')
+        ax1.set_ylabel('Loss')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
         
         # Accuracy curves
         ax2.plot(epochs, self.training_history['accuracy'], '#10b981', label='Training', linewidth=2)
         ax2.plot(epochs, self.training_history['val_accuracy'], '#f59e0b', label='Validation', linewidth=2)
-        ax2.set_title('Accuracy Over Time', color='#e2e8f0', fontweight='bold')
+        ax2.set_title('Accuracy Over Time', fontweight='bold')
         ax2.set_xlabel('Epoch', color='#e2e8f0')
         ax2.set_ylabel('Accuracy', color='#e2e8f0')
         ax2.legend(facecolor='#334155', edgecolor='#475569', labelcolor='#e2e8f0')
@@ -566,241 +535,7 @@ Unlike ChatGPT or other commercial APIs:
         """Create the Gradio interface"""
         
         with gr.Blocks(
-            title="Custom GPT Model - Trained by Me",
-            theme=gr.themes.Default(primary_hue="blue").set(
-                body_background_fill="#0f172a",
-                body_background_fill_dark="#4d5465",
-                background_fill_primary="#1e293b",
-                background_fill_primary_dark="#1e293b",
-                background_fill_secondary="#334155",
-                background_fill_secondary_dark="#334155",
-                border_color_primary="#475569",
-                border_color_primary_dark="#475569",
-                block_background_fill="#1e293b",
-                block_background_fill_dark="#1e293b",
-                input_background_fill="#334155",
-                input_background_fill_dark="#334155",
-                block_label_text_color="#e2e8f0",
-                block_label_text_color_dark="#e2e8f0",
-                body_text_color="#e2e8f0",
-                body_text_color_dark="#e2e8f0"
-            ),
-            css="""
-            .gradio-container {
-                max-width: 1200px !important;
-                background-color: #0f172a !important;
-                color: #e2e8f0 !important;
-            }
-            
-            /* Force dark theme styling */
-            body {
-                background-color: #0f172a !important;
-                color: #e2e8f0 !important;
-            }
-            
-            .custom-title {
-                text-align: center;
-                color: #60a5fa !important;
-                margin-bottom: 20px;
-            }
-            
-            /* Enhanced dark mode styling - always active */
-            :root {
-                --color-accent: #3b82f6 !important;
-                --color-accent-soft: #1e40af !important;
-            }
-            
-            /* Button styling for dark theme - always active */
-            .gr-button {
-                background: linear-gradient(45deg, #1e40af, #3b82f6) !important;
-                border: 1px solid #475569 !important;
-                color: white !important;
-            }
-            
-            .gr-button:hover {
-                background: linear-gradient(45deg, #2563eb, #60a5fa) !important;
-                transform: translateY(-1px);
-                box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3) !important;
-            }
-            
-            /* Primary button special styling */
-            .gr-button.primary {
-                background: linear-gradient(45deg, #dc2626, #ef4444) !important;
-                box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2) !important;
-            }
-            
-            .gr-button.primary:hover {
-                background: linear-gradient(45deg, #b91c1c, #dc2626) !important;
-                box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4) !important;
-            }
-            
-            /* Text areas and inputs - dark theme */
-            .gr-textbox, .gr-textbox textarea, .gr-textbox input {
-                background-color: #334155 !important;
-                border-color: #475569 !important;
-                color: #e2e8f0 !important;
-            }
-            
-            .gr-textbox:focus, .gr-textbox textarea:focus, .gr-textbox input:focus {
-                border-color: #3b82f6 !important;
-                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
-            }
-            
-            /* Sliders in dark mode */
-            .gr-slider input[type="range"] {
-                background-color: #475569 !important;
-            }
-            
-            /* Tabs styling - dark theme */
-            .gr-tab {
-                background-color: #1e293b !important;
-                border-color: #475569 !important;
-                color: #94a3b8 !important;
-            }
-            
-            .gr-tab.selected {
-                background-color: #3b82f6 !important;
-                color: white !important;
-            }
-            
-            /* Dropdown and select elements */
-            select {
-                background-color: #334155 !important;
-                border-color: #475569 !important;
-                color: #e2e8f0 !important;
-            }
-            
-            /* Code and monospace text */
-            code {
-                background-color: #374151 !important;
-                color: #f3f4f6 !important;
-                padding: 2px 4px;
-                border-radius: 3px;
-            }
-            
-            pre {
-                background-color: #1f2937 !important;
-                color: #f3f4f6 !important;
-                border: 1px solid #374151 !important;
-            }
-            
-            /* Scrollbars for dark theme */
-            ::-webkit-scrollbar {
-                width: 8px;
-            }
-            
-            ::-webkit-scrollbar-track {
-                background: #1e293b;
-            }
-            
-            ::-webkit-scrollbar-thumb {
-                background: #475569;
-                border-radius: 4px;
-            }
-            
-            ::-webkit-scrollbar-thumb:hover {
-                background: #64748b;
-            }
-            
-            /* Image containers */
-            .gr-image {
-                background-color: #1e293b !important;
-                border-color: #475569 !important;
-            }
-            
-            /* Accordion styling */
-            .gr-accordion {
-                background-color: #1e293b !important;
-                border-color: #475569 !important;
-            }
-            
-            .gr-accordion summary {
-                background-color: #334155 !important;
-                color: #e2e8f0 !important;
-            }
-            
-            /* Plot/chart backgrounds */
-            .gr-plot {
-                background-color: #1e293b !important;
-            }
-            
-            /* Enhanced markdown styling */
-            .prose, .markdown {
-                color: #e2e8f0 !important;
-            }
-            
-            .prose h1, .prose h2, .prose h3, .markdown h1, .markdown h2, .markdown h3 {
-                color: #f1f5f9 !important;
-            }
-            
-            .prose strong, .markdown strong {
-                color: #60a5fa !important;
-            }
-            
-            .prose code, .markdown code {
-                color: #fbbf24 !important;
-                background-color: #374151 !important;
-            }
-            
-            .prose blockquote, .markdown blockquote {
-                border-left-color: #3b82f6 !important;
-                background-color: #1e293b !important;
-            }
-            
-            /* Labels and text */
-            label {
-                color: #e2e8f0 !important;
-            }
-            
-            .gr-form {
-                background-color: #1e293b !important;
-            }
-            
-            /* Panel and card backgrounds */
-            .gr-panel {
-                background-color: #1e293b !important;
-                border-color: #475569 !important;
-            }
-            
-            /* Footer and header areas */
-            .gr-box {
-                background-color: #1e293b !important;
-            }
-            
-            /* Special highlight for important sections */
-            .highlight-box {
-                background: linear-gradient(135deg, #1e40af, #3730a3) !important;
-                border: 1px solid #3b82f6 !important;
-                border-radius: 8px;
-                padding: 16px;
-                margin: 8px 0;
-            }
-            
-            /* Force all text to be light colored */
-            * {
-                color: #e2e8f0;
-            }
-            
-            /* Slider styling */
-            .gr-slider {
-                background-color: #334155 !important;
-            }
-            
-            /* Info text styling */
-            .gr-info {
-                color: #94a3b8 !important;
-            }
-            
-            /* Tab content background */
-            .gr-tab-nav {
-                background-color: #1e293b !important;
-            }
-            
-            /* Ensure all containers use dark theme */
-            .gr-block {
-                background-color: #1e293b !important;
-            }
-            """
+            title="Custom GPT Model - Trained by Me"
         ) as interface:
             
             # Header
@@ -812,7 +547,7 @@ Unlike ChatGPT or other commercial APIs:
             - 🎨 **Specialized for Jane Austen's writing style** - trained exclusively on her novels
             - 📚 **Period-authentic language** - generates 19th-century literary prose
             - 🧠 **Custom trained model** - not a commercial API or chatbot
-            - 🌙 **Beautiful dark theme** - sleek dark interface with blue accents by default
+            - ☀️ **Clean light theme** - modern clean interface with blue accents by default
             
             **✨ Best results with literary prompts:**
             This model works best with character names, settings, and themes from Jane Austen's world. 

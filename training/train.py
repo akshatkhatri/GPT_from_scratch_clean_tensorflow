@@ -1,4 +1,3 @@
-# Plot training curves
 import matplotlib.pyplot as plt
 import sys
 import os
@@ -9,11 +8,8 @@ import tensorflow as tf
 import keras
 import numpy as np
 from models.layers import GPT, CosineDecayWithWarmup
-
-# Load configuration
 config = load_config('/home/akshat/GPT_from_scratch/cleaned_code/configs/config.txt')
 
-# Extract model parameters
 D_MODEL = config['D_MODEL']
 CONTEXT_LEN = config['CONTEXT_LEN']
 ATTENTION_HEADS = config['ATTENTION_HEADS']
@@ -21,28 +17,23 @@ DECODER_BLOCKS = config['DECODER_BLOCKS']
 DROPOUT_RATE = config['DROPOUT_RATE']
 LEARNING_RATE = config['LEARNING_RATE']
 
-# Extract training parameters
 EPOCHS = config['EPOCHS']
 STEPS_PER_EPOCH = config['STEPS_PER_EPOCH']
 WARMUP_RATIO = config['WARMUP_RATIO']
 PEAK_LEARNING_RATE = config['PEAK_LEARNING_RATE']
 MIN_LEARNING_RATE = config['MIN_LEARNING_RATE']
 
-# Extract tokenizer configuration
 TOKENIZER_TYPE = config['TOKENIZER_TYPE']
-VOCAB_SIZE_CONFIG = config.get('VOCAB_SIZE', 2000)  # Only used for word/sentencepiece
+VOCAB_SIZE_CONFIG = config.get('VOCAB_SIZE', 2000)
 
 FILE_PATH = '/home/akshat/GPT_from_scratch/text_data/jane_austen_clean.txt'
 
-# Create tokenizer based on configuration
 print(f"Creating {TOKENIZER_TYPE} tokenizer...")
 token_to_id_dict, tokenize_func, tokenizer_extra = create_tokenizer(config, [FILE_PATH])
 
-# Calculate vocab size from the actual vocabulary
 VOCAB_SIZE = len(token_to_id_dict)
 print(f"Vocabulary size: {VOCAB_SIZE}")
 
-# Print tokenizer info
 if TOKENIZER_TYPE != 'char':
     print(f"Configured vocab size: {VOCAB_SIZE_CONFIG}")
     if VOCAB_SIZE != VOCAB_SIZE_CONFIG and TOKENIZER_TYPE != 'char':
@@ -56,11 +47,9 @@ train_ds_64, val_ds_64, steps_64 = prepare_tfrecords(
     batch_size=64,
 )
 
-# Now calculate learning rate schedule with actual steps
 TOTAL_STEPS = EPOCHS * steps_64
 WARMUP_STEPS = int(WARMUP_RATIO * TOTAL_STEPS)
 
-# Create the learning rate schedule
 lr_schedule = CosineDecayWithWarmup(
     warmup_steps=WARMUP_STEPS,
     total_steps=TOTAL_STEPS,
@@ -73,13 +62,11 @@ val_ds_64 = val_ds_64.shuffle(10000)
 
 model = GPT(D_MODEL, VOCAB_SIZE, CONTEXT_LEN, ATTENTION_HEADS, LEARNING_RATE, DECODER_BLOCKS, DROPOUT_RATE)
 
-# Compile your model (same as before)
 loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 opt = keras.optimizers.AdamW(learning_rate=lr_schedule, weight_decay=1e-4, clipnorm=1.0) # type: ignore
 model.compile(optimizer=opt, loss=loss,metrics=['accuracy']) # type: ignore
 
 callbacks = [
-    # Save model every epoch with epoch number
     keras.callbacks.ModelCheckpoint(
         filepath='/home/akshat/GPT_from_scratch/notebooks/rewrite_char_level_checkpoints/model_epoch_{epoch:02d}_val_loss_{val_loss:.4f}.keras',
         save_freq='epoch',
@@ -87,7 +74,6 @@ callbacks = [
         verbose=1
     ),
     
-    # Save best model separately
     keras.callbacks.ModelCheckpoint(
         filepath='best_model.keras',
         monitor='val_loss',
@@ -95,10 +81,9 @@ callbacks = [
         verbose=1
     ),
     
-    # More reasonable early stopping
     keras.callbacks.EarlyStopping(
         monitor='val_loss',
-        patience=10,  # Wait 50 epochs before stopping
+        patience=10,
         restore_best_weights=True,
         verbose=1
     ),
@@ -112,7 +97,6 @@ callbacks = [
     )
 ]
 
-# Training
 print("Starting training...")
 print(f"Total epochs: {EPOCHS}")
 print(f"Steps per epoch: {steps_64}")
@@ -122,7 +106,7 @@ history = model.fit(
     train_ds_64,
     validation_data=val_ds_64,
     epochs=EPOCHS,
-    steps_per_epoch=steps_64,  # Use calculated steps, not config value
+    steps_per_epoch=steps_64,
     callbacks=callbacks,
     verbose=1 # type: ignore
 )

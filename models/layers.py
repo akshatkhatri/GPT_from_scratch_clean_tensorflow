@@ -34,16 +34,13 @@ class InitializePositionalEmbeddings(keras.layers.Layer):
         super().build(input_shape)
 
     def call(self, text_batch):
-
-        token_ids= text_batch # Unpacking Data Pre-processing inputs Embeddings
+        token_ids = text_batch
         
-        # Embeddings lookup: (B, T, D)
         token_emb = tf.nn.embedding_lookup(self.embedding_matrix, token_ids)
-        # Positional embeddings: slice and broadcast
         seq_len = tf.shape(token_ids)[1] # type: ignore
-        pos_emb = self._pos_table[:seq_len, :]    # type: ignore # (T, D)
-        pos_emb = tf.expand_dims(pos_emb, 0)     # (1, T, D)
-        embeddings = token_emb + pos_emb         # (B, T, D)
+        pos_emb = self._pos_table[:seq_len, :]    # type: ignore
+        pos_emb = tf.expand_dims(pos_emb, 0)
+        embeddings = token_emb + pos_emb
         return embeddings
 
     # def compute_output_shape(self, input_shape):
@@ -112,60 +109,45 @@ class SelfAttentionLayer(keras.layers.Layer):
         batch_size = tf.shape(embeddings)[0] # type: ignore
         seq_len = tf.shape(embeddings)[1] # type: ignore
 
-        # 1. Project to Q, K, V
         Q = embeddings @ self.Query_projection
         K = embeddings @ self.Key_projection
         V = embeddings @ self.Value_projection
 
-        # 2. Reshape for multi-head attention
         Q = tf.reshape(Q, (batch_size, seq_len, self.attention_heads, self.d_head))
         K = tf.reshape(K, (batch_size, seq_len, self.attention_heads, self.d_head))
         V = tf.reshape(V, (batch_size, seq_len, self.attention_heads, self.d_head))
 
-        Q = tf.transpose(Q, (0, 2, 1, 3))  # (batch, heads, seq_len, d_head)
+        Q = tf.transpose(Q, (0, 2, 1, 3))
         K = tf.transpose(K, (0, 2, 1, 3))
         V = tf.transpose(V, (0, 2, 1, 3))
 
-        # 3. Compute attention scores
-        scores = tf.matmul(Q, K, transpose_b=True)  # (batch, heads, seq_len, seq_len)
+        scores = tf.matmul(Q, K, transpose_b=True)
         scores = scores / tf.sqrt(tf.cast(self.d_head, tf.float32))
         
-        # 4. FIXED MASKING - This was your main bug
-        # 4a. Causal mask (L,L) lower triangular
         causal_mask = tf.linalg.band_part(tf.ones((seq_len, seq_len)), -1, 0)
         
-        # 4b. Token mask - FIXED: proper broadcasting to all heads
-        token_mask = tf.cast(token_masks, tf.float32)  # (B, L)
+        token_mask = tf.cast(token_masks, tf.float32)
         
-        # Create proper attention mask shape (B, H, L, L)
-        # Each head gets the same mask pattern
-        attention_mask = causal_mask[tf.newaxis, tf.newaxis, :, :]  # (1, 1, L, L)
-        attention_mask = attention_mask * token_mask[:, tf.newaxis, tf.newaxis, :]  # type: ignore # (B, 1, 1, L)
-        attention_mask = attention_mask * token_mask[:, tf.newaxis, :, tf.newaxis]  # type: ignore # (B, 1, L, 1)
+        attention_mask = causal_mask[tf.newaxis, tf.newaxis, :, :]
+        attention_mask = attention_mask * token_mask[:, tf.newaxis, tf.newaxis, :] # type: ignore
+        attention_mask = attention_mask * token_mask[:, tf.newaxis, :, tf.newaxis] # type: ignore
         
-        # Broadcast to all heads
         attention_mask = tf.broadcast_to(attention_mask, (batch_size, self.attention_heads, seq_len, seq_len))
         
-        # 5. Apply mask with stronger negative value
         scores = tf.where(
             attention_mask > 0, 
             scores, 
-            tf.constant(-1e30, dtype=scores.dtype)  # FIXED: Much more negative
+            tf.constant(-1e30, dtype=scores.dtype)
         )
 
-        # 6. Softmax and apply to values
         attention_weights = tf.nn.softmax(scores, axis=-1)
-        
-        # Add attention dropout (missing in your original)
         attention_weights = tf.nn.dropout(attention_weights, rate=0.1)
         
-        context = attention_weights @ V   # (batch, heads, seq_len, d_head)
+        context = attention_weights @ V
         
-        # 7. Concatenate heads
-        concat_context = tf.transpose(context, (0, 2, 1, 3))  # (batch, seq_len, heads, d_head)
+        concat_context = tf.transpose(context, (0, 2, 1, 3))
         concat_context = tf.reshape(concat_context, (batch_size, seq_len, self.d_model))
         
-        # 8. Final projection
         final_context = concat_context @ self.output_projection 
         return final_context
     
@@ -234,13 +216,11 @@ class SimpleDense(keras.layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs):
-        # inputs shape: (batch, seq_len, input_dim)
-        output = tf.matmul(inputs, self.kernel) + self.bias  # shape: (batch, seq_len, units))  # shape: (batch, seq_len, units)
-        return output + self.bias
+        output = tf.matmul(inputs, self.kernel) + self.bias
+        return output
 
     def compute_output_shape(self, input_shape):
-        # input_shape: (batch, seq_len, input_dim)
-        return (input_shape, input_shape[1], self.units)
+        return (input_shape[0], input_shape[1], self.units)
 
     def get_config(self):
         base = super().get_config()
@@ -248,20 +228,17 @@ class SimpleDense(keras.layers.Layer):
     
 @keras.saving.register_keras_serializable()
 class DecoderBlock(keras.Model):
-    '''A single Decoder Block'''
     def __init__(self, d_model, n_heads, dropout_rate=0.1, epsilon=1e-5, name=None):
         super().__init__(name=name)
         self.d_model = d_model
         self.n_heads = n_heads
         self.dropout_rate = dropout_rate
         self.epsilon = epsilon
-        # norms
-        self.ln1 = LayerNormalization(epsilon)   # pre-attn
-        self.ln2 = LayerNormalization(epsilon)   # pre-ffn
-        # attention (assumes your SelfAttentionLayer accepts (x, attention_mask))
+        
+        self.ln1 = LayerNormalization(epsilon)
+        self.ln2 = LayerNormalization(epsilon)
         self.attn = SelfAttentionLayer(n_heads)
         self.dropout1 = keras.layers.Dropout(dropout_rate)
-        # FFN
         self.ffn1 = keras.layers.Dense(4 * d_model, activation="gelu")
         self.ffn2 = keras.layers.Dense(d_model)
         self.dropout2 = keras.layers.Dropout(dropout_rate)
@@ -271,18 +248,16 @@ class DecoderBlock(keras.Model):
         y = self.ln1(x)
         y = self.attn((y, attention_mask))          # shape: (B, T, d_model)
         y = self.dropout1(y, training=training)
-        x = x + y                                    # residual
+        x = x + y
 
-        # FFN sublayer
         y = self.ln2(x)
         y = self.ffn1(y)
         y = self.ffn2(y)
         y = self.dropout2(y, training=training)
-        x = x + y                                    # residual
+        x = x + y
         return x
     
     def compute_output_shape(self, input_shape):
-        # input_shape is typically (batch_size, seq_len, d_model)
         return input_shape
     
     def get_config(self):
@@ -297,9 +272,6 @@ class DecoderBlock(keras.Model):
 
 @keras.saving.register_keras_serializable()
 class GPT(keras.Model):
-    '''
-    GPT model with N distinct blocks
-      -----------------------------------'''
     def __init__(self,
                  d_model: int = 128,
                  vocab_size: int = 94,
@@ -318,7 +290,6 @@ class GPT(keras.Model):
         self._decoder_blocks = decoder_blocks
         self._dropout_rate = dropout_rate
 
-        # embeddings (yours)
         self.emb = InitializePositionalEmbeddings(
             d_model, vocab_size,context_length,name="init_embeddings"
         )
@@ -329,26 +300,19 @@ class GPT(keras.Model):
             for i in range(decoder_blocks)
         ]
 
-        # final norm (GPT-2 style) and LM head
         self.final_ln = LayerNormalization(epsilon)
         self.lm_head = keras.layers.Dense(vocab_size, name="Model_head")
 
     def call(self, inputs, training=False):
-        """
-        inputs: (token_ids, attention_mask)
-          - token_ids: int32 (B, T)
-          - attention_mask: int32/float32 mask broadcasting to attention logits.
-            Common shapes: (B, 1, 1, T) or (B, T) if your SelfAttentionLayer handles expansion.
-        """
         token_ids, attention_mask = inputs
-        x = self.emb(token_ids)                         # (B, T, d_model)
+        x = self.emb(token_ids)
 
         for block in self.blocks:
             x = block(x, attention_mask, training=training)
 
         x = self.final_ln(x)
-        logits = self.lm_head(x)                        # (B, T, vocab_size)
-        return logits                                   # keep softmax outside
+        logits = self.lm_head(x)
+        return logits
 
     def get_config(self):
         cfg = super().get_config()
@@ -383,10 +347,8 @@ class CosineDecayWithWarmup(keras.optimizers.schedules.LearningRateSchedule):
         warmup_steps = tf.cast(self.warmup_steps, tf.float32)
         total_steps = tf.cast(self.total_steps, tf.float32)
         
-        # Warmup phase: linear increase from 0 to peak_learning_rate
         warmup_lr = self.peak_learning_rate * tf.math.divide(step, warmup_steps)
         
-        # Cosine decay phase
         decay_steps = tf.math.subtract(total_steps, warmup_steps)
         progress = tf.math.divide(tf.math.subtract(step, warmup_steps), decay_steps)
         cosine_decay_lr = self.min_learning_rate + 0.5 * (
@@ -403,18 +365,3 @@ class CosineDecayWithWarmup(keras.optimizers.schedules.LearningRateSchedule):
             "min_learning_rate": self.min_learning_rate,
             "name": self.name,
         }
-
-# Example usage for your model
-# Estimate your training parameters
-EPOCHS = 20
-STEPS_PER_EPOCH = 1000  # Adjust based on your dataset size and batch size
-TOTAL_STEPS = EPOCHS * STEPS_PER_EPOCH
-WARMUP_STEPS = int(0.1 * TOTAL_STEPS)  # 10% warmup
-
-# Create the learning rate schedule
-lr_schedule = CosineDecayWithWarmup(
-    warmup_steps=WARMUP_STEPS,
-    total_steps=TOTAL_STEPS,
-    peak_learning_rate=1e-4,  # Your desired peak learning rate
-    min_learning_rate=1e-6    # Minimum learning rate at the end
-)
