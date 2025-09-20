@@ -487,6 +487,115 @@ except ConfigurationError as e:
 
 ### Memory Usage
 - Model size: ~3.2MB (801K parameters × 4 bytes)
+## Experimental Notebook Utilities
+
+The `notebooks/` folder contains experimental functions and utilities developed during the research phase. These are documented for educational purposes and understanding the development process.
+
+### Character-Level Data Processing (`char_level_data_processing.py`)
+
+#### `build_vocab(text_path)`
+Builds a character-level vocabulary from a text file.
+
+**Parameters:**
+- `text_path` (str): Path to the text file
+
+**Returns:**
+- `token_to_id` (dict): Character to ID mapping
+- `id_to_token` (dict): ID to character mapping  
+- `vocab` (list): Sorted list of unique characters
+
+```python
+token_to_id, id_to_token, vocab = build_vocab('text_data/jane_austen_clean.txt')
+print(f'Vocabulary size: {len(vocab)}')
+```
+
+#### `tokenize_and_pad(text_batch, token_to_id, max_seq_len, pad_value=0)`
+Tokenizes a batch of texts and pads to uniform length.
+
+**Parameters:**
+- `text_batch` (list): List of text strings
+- `token_to_id` (dict): Character to ID mapping
+- `max_seq_len` (int): Maximum sequence length
+- `pad_value` (int): Padding token ID (default: 0)
+
+**Returns:**
+- `token_ids` (np.ndarray): Tokenized and padded sequences
+- `attention_mask` (np.ndarray): Attention mask (1 for real tokens, 0 for padding)
+
+#### `prepare_training_data(text, token_to_id, context_length=10, pad_value=0)`
+Prepares input-target pairs for training using sliding window approach.
+
+**Parameters:**
+- `text` (str): Input text string
+- `token_to_id` (dict): Character to ID mapping
+- `context_length` (int): Context window size (default: 10)
+- `pad_value` (int): Padding token ID (default: 0)
+
+**Returns:**
+- `inputs` (np.ndarray): Input sequences
+- `targets` (np.ndarray): Target sequences (shifted by 1)
+
+### Word-Level Data Processing (`word_level_data_processing.py`)
+
+#### `build_word_vocab(text_path, max_words=10000)`
+Builds a word-level vocabulary with frequency-based filtering.
+
+**Parameters:**
+- `text_path` (str): Path to the text file
+- `max_words` (int): Maximum vocabulary size (default: 10000)
+
+**Returns:**
+- `token_to_id` (dict): Word to ID mapping
+- `id_to_token` (dict): ID to word mapping
+- `vocab` (list): Most frequent words
+
+```python
+token_to_id, id_to_token, vocab = build_word_vocab('text_data/jane_austen_clean.txt', max_words=5000)
+```
+
+#### `tokenize_and_pad_words(text_batch, token_to_id, max_seq_len, pad_value=0)`
+Word-level tokenization and padding.
+
+**Parameters:**
+- `text_batch` (list): List of text strings
+- `token_to_id` (dict): Word to ID mapping
+- `max_seq_len` (int): Maximum sequence length in words
+- `pad_value` (int): Padding token ID (default: 0)
+
+**Returns:**
+- `token_ids` (np.ndarray): Word-tokenized sequences
+- `attention_mask` (np.ndarray): Attention mask
+
+#### `prepare_word_training_data(text, token_to_id, context_length=6, pad_value=0)`
+Prepares word-level training data with sliding window.
+
+**Parameters:**
+- `text` (str): Input text string
+- `token_to_id` (dict): Word to ID mapping
+- `context_length` (int): Context window in words (default: 6)
+- `pad_value` (int): Padding token ID (default: 0)
+
+**Returns:**
+- `inputs` (np.ndarray): Input word sequences
+- `targets` (np.ndarray): Target word sequences
+
+### Usage Notes
+
+⚠️ **Experimental Status**: These functions are experimental implementations used during development. For production use, refer to the main data processing modules in `data/data_processing.py`.
+
+**Key Differences from Production Code:**
+- Simplified error handling
+- Debug print statements included
+- May not handle edge cases comprehensively
+- Designed for experimentation rather than robustness
+
+**Educational Value:**
+- Demonstrates different tokenization approaches
+- Shows the evolution from experimental to production code
+- Illustrates character vs. word-level processing trade-offs
+
+---
+
 - Training memory: ~2-4GB GPU memory for batch size 32
 - Inference memory: ~500MB for single sequence generation
 
@@ -502,4 +611,4 @@ except ConfigurationError as e:
 
 ---
 
-This API documentation provides comprehensive coverage of all public interfaces and methods in the custom GPT implementation. For implementation details and examples, refer to the source code in the respective modules.
+This API documentation provides comprehensive coverage of all public interfaces and methods in the custom GPT implementation, including experimental utilities developed during the research phase. For implementation details and examples, refer to the source code in the respective modules.

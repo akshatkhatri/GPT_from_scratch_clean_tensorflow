@@ -247,6 +247,44 @@ The interface is excellent for:
 3. **Analyze the training curves** to understand model performance
 4. **Experiment with various Jane Austen character names**
 
+## 📓 Exploring the Development Notebooks
+
+For those interested in the technical development process, the `notebooks/` folder contains extensive experimental code that shows how this project evolved.
+
+### For Researchers & Students
+
+#### Core Learning Notebooks
+- **`gpt.ipynb`**: Follow the complete development journey of the GPT model from scratch
+- **`Initialize_embedding_layer.md`**: Understand how tokenization and embeddings work with clear examples
+- **`data_preprocessing_messy.ipynb`**: See real data preprocessing challenges and solutions
+
+#### Comparing Approaches
+- **`word_gpt.ipynb`** vs **`gpt.ipynb`**: Compare word-level vs character-level tokenization approaches
+- **`sentence_piece.py`**: Explore subword tokenization as an alternative approach
+- **Multiple model versions**: See how the architecture evolved through iterations
+
+#### Development Process
+- **Prototype to Production**: See how experimental notebook code was refined into the production scripts
+- **Failed Experiments**: Learn from approaches that didn't work
+- **Debugging Sessions**: Understand common ML development challenges
+
+### Important Notes
+
+⚠️ **These are experimental notebooks**: 
+- Code may be incomplete or non-functional
+- Contains debugging artifacts and temporary implementations
+- Multiple approaches to the same problem
+- Some dependencies may be outdated
+
+💡 **Best Practice**: Use these notebooks for learning and understanding the development process, but rely on the main project scripts (`training/`, `deployment/`, etc.) for actual model training and deployment.
+
+### How to Use Experimental Notebooks
+
+1. **Browse for Learning**: Read through to understand different approaches
+2. **Compare Methods**: See how different tokenization strategies perform
+3. **Understand Evolution**: Follow the progression from early prototypes to final implementation
+4. **Avoid for Production**: Use organized scripts instead for reliable results
+
 ## 🎓 Understanding the Technology
 
 This interface demonstrates:
@@ -254,6 +292,7 @@ This interface demonstrates:
 - **Character-level language modeling** for fine-grained generation
 - **Attention mechanisms** for understanding context relationships
 - **Specialized training** on a single author's complete works
+- **Iterative development process** documented through experimental notebooks
 
 The model represents a complete machine learning pipeline from data processing through deployment, showcasing both technical implementation skills and practical application of deep learning for creative text generation.
 

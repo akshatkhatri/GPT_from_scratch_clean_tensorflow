@@ -51,6 +51,17 @@ cleaned_code/
 │       ├── tokenizer.json
 │       ├── training_history.json
 │       └── checkpoints/
+├── notebooks/             # Experimental development notebooks
+│   ├── gpt.ipynb          # Main GPT development notebook
+│   ├── gpt_v3.ipynb       # Advanced GPT experiments
+│   ├── word_gpt.ipynb     # Word-level tokenization experiments
+│   ├── deploy.ipynb       # Deployment prototyping
+│   ├── data_preprocessing_messy.ipynb  # Data processing experiments
+│   ├── char_level_data_processing.py   # Character tokenization utils
+│   ├── word_level_data_processing.py   # Word tokenization utils
+│   ├── sentence_piece.py  # SentencePiece implementation
+│   ├── Initialize_embedding_layer.md   # Embedding documentation
+│   └── *.keras            # Experimental model checkpoints
 ├── testing/               # Test scripts and debugging
 ├── analysis/              # Data analysis and visualization
 └── tfrecords/             # Processed training data
@@ -64,7 +75,7 @@ cleaned_code/
 - **ML Engineering**: Model design, hyperparameter tuning, training monitoring
 - **LR scheduling**: Cosine decay with warmup and optimizers.
 - **TFRECORDS** : Designed and understood How TFRECORDS are used for data processing.
-- **Notebooks** : includes my own experimentation before writing formal .py codes
+- **Notebooks** : Includes experimental Jupyter notebooks documenting the iterative development process, different tokenization approaches (character-level, word-level, SentencePiece), and prototype implementations that led to the final architecture
 
 ### AI-Generated Components  
 The following components were created using AI tools (GitHub Copilot, ChatGPT):
@@ -76,7 +87,57 @@ The following components were created using AI tools (GitHub Copilot, ChatGPT):
 I include these AI-generated components to demonstrate a complete ML project structure, but the core machine learning implementation represents my original work and understanding of transformer architectures.
 
 
-## 🚀 Quick Start
+## � Experimental Notebooks
+
+The `notebooks/` folder contains the experimental development history of this project, showcasing the iterative process from initial prototypes to the final implementation. These notebooks document different approaches, failed experiments, and the learning journey.
+
+### Key Experimental Notebooks
+
+#### Core Development
+- **`gpt.ipynb`**: The main development notebook containing the original GPT implementation with extensive experimentation and model architecture iterations
+- **`gpt_v3.ipynb`**: Advanced experiments with improved architecture and training techniques
+- **`gpt v2.ipynb`** & **`gpt v4_power copy.ipynb`**: Version iterations showing model evolution
+
+#### Tokenization Experiments
+- **`word_gpt.ipynb`**: Word-level tokenization experiments as an alternative to character-level approach
+- **`char_level_data_processing.py`**: Character-level tokenization utilities and functions
+- **`word_level_data_processing.py`**: Word-level tokenization implementation
+- **`sentence_piece.py`**: SentencePiece tokenizer experiments for subword tokenization
+
+#### Data Processing & Training
+- **`data_preprocessing_messy.ipynb`**: Raw data preprocessing experiments and pipeline development
+- **`pre_processing_experimental.ipynb`**: Additional preprocessing experiments
+- **`simple_gpt_data_processing.ipynb`**: Simplified data processing approaches
+- **`training_experiments_messy.ipynb`**: Training loop experiments and hyperparameter tuning
+
+#### Deployment Prototypes
+- **`deploy.ipynb`**: Initial Gradio interface prototyping and deployment experiments
+- **`word_deploy.ipynb`**: Deployment experiments for word-level models
+
+#### Documentation & Analysis
+- **`Initialize_embedding_layer.md`**: Detailed documentation on embedding layer implementation and token processing
+- **Model checkpoints**: Various `.keras` files representing different experimental model states
+
+### Educational Value
+
+These notebooks demonstrate:
+- **Iterative Development**: How complex ML projects evolve through experimentation
+- **Multiple Approaches**: Different tokenization strategies and their trade-offs
+- **Problem-Solving Process**: How technical challenges were identified and resolved
+- **Architecture Evolution**: Progressive improvements to the model design
+- **Debugging & Testing**: Trial-and-error process in ML development
+
+### Usage Notes
+
+⚠️ **Important**: These notebooks are experimental and may contain:
+- Incomplete or non-functional code segments
+- Multiple approaches to the same problem
+- Debugging artifacts and temporary implementations
+- Outdated dependencies or configurations
+
+For production-ready code, use the organized scripts in the main project folders (`models/`, `training/`, `deployment/`, etc.).
+
+## �🚀 Quick Start
 
 ### Prerequisites
 
