@@ -64,6 +64,7 @@ cleaned_code/
 - **ML Engineering**: Model design, hyperparameter tuning, training monitoring
 - **LR scheduling**: Cosine decay with warmup and optimizers.
 - **TFRECORDS** : Designed and understood How TFRECORDS are used for data processing.
+- **Notebooks** : includes my own experimentation before writing formal .py codes
 
 ### AI-Generated Components  
 The following components were created using AI tools (GitHub Copilot, ChatGPT):
