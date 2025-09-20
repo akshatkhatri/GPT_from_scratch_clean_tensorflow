@@ -56,6 +56,25 @@ cleaned_code/
 └── tfrecords/             # Processed training data
 ```
 
+## 🤖 Attribution 
+
+### My Implementation (100% Original Work)
+- **Core Model Architecture**: All transformer components, attention mechanisms, embeddings
+- **Training System**: Complete training pipeline, data processing, configuration management
+- **ML Engineering**: Model design, hyperparameter tuning, training monitoring
+- **LR scheduling**: Cosine decay with warmup and optimizers.
+- **TFRECORDS** : Designed and understood How TFRECORDS are used for data processing.
+
+### AI-Generated Components  
+The following components were created using AI tools (GitHub Copilot, ChatGPT):
+- **Documentation**: Original README, function documentation
+- **Web Interface**: Gradio deployment application (`deployment/`)
+- **Visualization Tools**: Training analysis and attention visualization (`analysis/`)
+- **Testing Infrastructure**: Test scripts and debugging tools (`testing/`)
+
+I include these AI-generated components to demonstrate a complete ML project structure, but the core machine learning implementation represents my original work and understanding of transformer architectures.
+
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -179,23 +198,6 @@ of Mr. Darcy's recent proposal. The morning air was fresh and cool,
 and she found herself reflecting upon the complexities of her own 
 feelings toward that gentleman."
 ```
-
-## 🤖 Attribution
-
-### My Implementation (100% Original Work)
-- **Core Model Architecture**: All transformer components, attention mechanisms, embeddings
-- **Training System**: Complete training pipeline, data processing, configuration management
-- **ML Engineering**: Model design, hyperparameter tuning, training monitoring
-
-### AI-Generated Components  
-The following components were created using AI tools (GitHub Copilot, ChatGPT):
-- **Documentation**: Original README, function documentation
-- **Web Interface**: Gradio deployment application (`deployment/`)
-- **Visualization Tools**: Training analysis and attention visualization (`analysis/`)
-- **Testing Infrastructure**: Test scripts and debugging tools (`testing/`)
-
-I include these AI-generated components to demonstrate a complete ML project structure, but the core machine learning implementation represents my original work and understanding of transformer architectures.
-
 
 ## 🔧 Advanced Usage
 
